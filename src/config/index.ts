@@ -1,0 +1,18 @@
+import { env } from "./env";
+
+export const config = {
+    port: env.PORT,
+
+    nodeEnv: env.NODE_ENV,
+
+    jwt: {
+        secret: env.JWT_SECRET,
+    },
+    database: {
+        host: env.DB_HOST,
+        port: Number(env.DB_PORT),
+        user: env.DB_USER,
+        password: env.DB_PASSWORD,
+        database: env.DB_NAME,
+    },
+};

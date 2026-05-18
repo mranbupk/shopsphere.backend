@@ -26,6 +26,8 @@ const envSchema = z.object({
   DB_PASSWORD: z.string(),
 
   DB_NAME: z.string(),
+
+  JWT_EXPIRES_IN: z.string(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

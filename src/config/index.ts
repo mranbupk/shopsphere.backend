@@ -7,6 +7,7 @@ export const config = {
 
     jwt: {
         secret: env.JWT_SECRET,
+        expiresIn: env.JWT_EXPIRES_IN,
     },
     database: {
         host: env.DB_HOST,

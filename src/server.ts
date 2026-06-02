@@ -1,8 +1,23 @@
 import app from "./app";
-import "./database/postgres";
-
 import { config } from "./config";
 
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
-});
+import "./database/postgres";
+
+import { connectMongoDB }
+  from "./database/mongo";
+
+const startServer = async () => {
+
+  await connectMongoDB();
+
+  app.listen(
+    config.port,
+    () => {
+      console.log(
+        `Server running on port ${config.port}`
+      );
+    }
+  );
+};
+
+startServer();

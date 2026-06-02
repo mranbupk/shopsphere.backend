@@ -28,6 +28,7 @@ const envSchema = z.object({
   DB_NAME: z.string(),
 
   JWT_EXPIRES_IN: z.string(),
+  MONGO_URI: z.string(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

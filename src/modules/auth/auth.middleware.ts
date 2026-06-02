@@ -1,10 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { AppError } from "../../common/errors/app-error";
 import { verifyToken } from "../../common/utils/jwt";
-
-interface AuthenticatedRequest extends Request {
-  user?: any;
-}
+import { AuthenticatedRequest, JwtPayload } from "./auth.types";
 
 export const authenticate = (
   req: AuthenticatedRequest,
@@ -24,7 +21,7 @@ export const authenticate = (
   }
 
   try {
-    const decoded = verifyToken(token);
+    const decoded = verifyToken(token) as JwtPayload;
     req.user = decoded;
     next();
   } catch (error) {

@@ -16,4 +16,7 @@ export const config = {
         password: env.DB_PASSWORD,
         database: env.DB_NAME,
     },
+    mongo: {
+        uri: env.MONGO_URI,
+    },
 };

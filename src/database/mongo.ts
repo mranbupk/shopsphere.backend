@@ -14,11 +14,6 @@ export const connectMongoDB =
       console.log(
         "MongoDB connected successfully"
       );
-      console.log(
-  "Mongo Database:",
-  mongoose.connection.name
-);
-
     } catch (error) {
 
       console.error(
@@ -29,4 +24,4 @@ export const connectMongoDB =
       process.exit(1);
 
     }
-};
+  };

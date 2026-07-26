@@ -46,3 +46,13 @@ export const updateProductRepository = async (
 export const deleteProductRepository = async (productId: string) => {
   return Product.findByIdAndDelete(productId);
 };
+
+export const getProductsByIdsRepository = async (
+    productIds: string[],
+) => {
+    return Product.find({
+        _id: {
+            $in: productIds,
+        },
+    }).lean();
+};

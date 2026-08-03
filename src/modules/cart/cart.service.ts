@@ -11,6 +11,61 @@ import {
 import { AppError } from "../../common/errors/app-error";
 import { CartItemResponse, CartResponse } from "./cart.types";
 
+const buildCartResponse = async (cart: any): Promise<CartResponse> => {
+  const productIds = cart.items.map((item: any) => item.productId.toString());
+
+  if (productIds.length === 0) {
+    return {
+      items: [],
+      grandTotal: 0,
+    };
+  }
+
+  const products = await getProductsByIdsRepository(productIds);
+
+  // Remove deleted products
+  const validProductIds = new Set(
+    products.map((product) => product._id.toString()),
+  );
+
+  cart.items = cart.items.filter((item: any) =>
+    validProductIds.has(item.productId.toString()),
+  );
+
+  if (cart.items.length !== productIds.length) {
+    await cart.save();
+  }
+
+  // Faster lookup than Array.find()
+  const productMap = new Map(
+    products.map((product) => [product._id.toString(), product]),
+  );
+
+  const items: CartItemResponse[] = cart.items.map((item: any) => {
+    const product = productMap.get(item.productId.toString())!;
+
+    return {
+      productId: product._id.toString(),
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      price: product.price,
+      quantity: item.quantity,
+      subtotal: product.price * item.quantity,
+    };
+  });
+
+  const grandTotal = items.reduce(
+    (total, item) => total + item.subtotal,
+    0,
+  );
+
+  return {
+    items,
+    grandTotal,
+  };
+};
+
 export const addToCart = async (
   userId: string,
   productId: string,
@@ -33,7 +88,7 @@ export const addToCart = async (
 
   // Create cart if it doesn't exist
   if (!cart) {
-    return createCartRepository({
+    const newCart = await createCartRepository({
       userId,
       items: [
         {
@@ -42,6 +97,8 @@ export const addToCart = async (
         },
       ],
     });
+
+    return buildCartResponse(newCart);
   }
 
   // Check whether product already exists
@@ -60,7 +117,7 @@ export const addToCart = async (
 
   await cart.save();
 
-  return cart;
+  return buildCartResponse(cart);
 };
 
 export const getCart = async (userId: string): Promise<CartResponse> => {
@@ -73,38 +130,7 @@ export const getCart = async (userId: string): Promise<CartResponse> => {
     };
   }
 
-  const productIds = cart.items.map((item) => item.productId.toString());
-
-  const products = await getProductsByIdsRepository(productIds);
-
-  const items: CartItemResponse[] = cart.items
-    .map((item) => {
-      const product = products.find(
-        (product) => product._id.toString() === item.productId.toString(),
-      );
-
-      if (!product) {
-        return null;
-      }
-
-      return {
-        productId: product._id.toString(),
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        price: product.price,
-        quantity: item.quantity,
-        subtotal: product.price * item.quantity,
-      };
-    })
-    .filter((item): item is CartItemResponse => item !== null);
-
-  const grandTotal = items.reduce((total, item) => total + item.subtotal, 0);
-
-  return {
-    items,
-    grandTotal,
-  };
+  return buildCartResponse(cart);
 };
 
 export const updateCartItem = async (
@@ -134,7 +160,7 @@ export const updateCartItem = async (
 
   await cart.save();
 
-  return cart;
+  return buildCartResponse(cart);
 };
 
 export const removeCartItem = async (
@@ -155,15 +181,15 @@ export const removeCartItem = async (
         item.productId.equals(productId),
     );
 
-    if (itemIndex === -1) {
-        throw new AppError(404, "Product not found in cart");
-    }
+  if (itemIndex === -1) {
+    throw new AppError(404, "Product not found in cart");
+  }
 
-    cart.items.splice(itemIndex, 1);
+  cart.items.splice(itemIndex, 1);
 
-    await cart.save();
+  await cart.save();
 
-    return cart;
+  return buildCartResponse(cart);
 };
 
 export const clearCart = async (userId: string) => {

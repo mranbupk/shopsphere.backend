@@ -5,6 +5,7 @@ export interface CartItemResponse {
     category: string;
     price: number;
     image: string;
+    stock: number;
     quantity: number;
     subtotal: number;
 }

@@ -12,7 +12,9 @@ import { AppError } from "../../common/errors/app-error";
 import { CartItemResponse, CartResponse } from "./cart.types";
 
 const buildCartResponse = async (cart: any): Promise<CartResponse> => {
-  const productIds = cart.items.map((item: any) => item.productId.toString());
+  const productIds = cart.items.map((item: any) =>
+    item.productId.toString(),
+  );
 
   if (productIds.length === 0) {
     return {
@@ -50,6 +52,7 @@ const buildCartResponse = async (cart: any): Promise<CartResponse> => {
       description: product.description,
       category: product.category,
       price: product.price,
+      stock: product.stock,
       quantity: item.quantity,
       subtotal: product.price * item.quantity,
     };
@@ -83,6 +86,14 @@ export const addToCart = async (
     throw new AppError(404, "Product not found");
   }
 
+  // Check requested quantity against stock
+  if (quantity > existingProduct.stock) {
+    throw new AppError(
+      400,
+      `Only ${existingProduct.stock} items are available`,
+    );
+  }
+
   // Find user's cart
   const cart = await getCartByUserIdRepository(userId);
 
@@ -106,8 +117,21 @@ export const addToCart = async (
     item.productId.equals(productId),
   );
 
+  // Calculate final quantity
+  const newQuantity = existingItem
+    ? existingItem.quantity + quantity
+    : quantity;
+
+  // Check final quantity against stock
+  if (newQuantity > existingProduct.stock) {
+    throw new AppError(
+      400,
+      `Only ${existingProduct.stock} items are available`,
+    );
+  }
+
   if (existingItem) {
-    existingItem.quantity += quantity;
+    existingItem.quantity = newQuantity;
   } else {
     cart.items.push({
       productId: new mongoose.Types.ObjectId(productId),
@@ -120,7 +144,9 @@ export const addToCart = async (
   return buildCartResponse(cart);
 };
 
-export const getCart = async (userId: string): Promise<CartResponse> => {
+export const getCart = async (
+  userId: string,
+): Promise<CartResponse> => {
   const cart = await getCartByUserIdRepository(userId);
 
   if (!cart) {
@@ -156,6 +182,21 @@ export const updateCartItem = async (
     throw new AppError(404, "Product not found in cart");
   }
 
+  // Check product exists
+  const product = await getProductByIdRepository(productId);
+
+  if (!product) {
+    throw new AppError(404, "Product not found");
+  }
+
+  // Check requested quantity against stock
+  if (quantity > product.stock) {
+    throw new AppError(
+      400,
+      `Only ${product.stock} items are available`,
+    );
+  }
+
   existingItem.quantity = quantity;
 
   await cart.save();
@@ -164,22 +205,22 @@ export const updateCartItem = async (
 };
 
 export const removeCartItem = async (
-    userId: string,
-    productId: string,
+  userId: string,
+  productId: string,
 ) => {
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-        throw new AppError(400, "Invalid product id");
-    }
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    throw new AppError(400, "Invalid product id");
+  }
 
-    const cart = await getCartByUserIdRepository(userId);
+  const cart = await getCartByUserIdRepository(userId);
 
-    if (!cart) {
-        throw new AppError(404, "Cart not found");
-    }
+  if (!cart) {
+    throw new AppError(404, "Cart not found");
+  }
 
-    const itemIndex = cart.items.findIndex((item) =>
-        item.productId.equals(productId),
-    );
+  const itemIndex = cart.items.findIndex((item) =>
+    item.productId.equals(productId),
+  );
 
   if (itemIndex === -1) {
     throw new AppError(404, "Product not found in cart");
@@ -193,11 +234,11 @@ export const removeCartItem = async (
 };
 
 export const clearCart = async (userId: string) => {
-    const cart = await getCartByUserIdRepository(userId);
+  const cart = await getCartByUserIdRepository(userId);
 
-    if (!cart) {
-        throw new AppError(404, "Cart not found");
-    }
+  if (!cart) {
+    throw new AppError(404, "Cart not found");
+  }
 
-    await deleteCartRepository(userId);
+  await deleteCartRepository(userId);
 };
